@@ -52,6 +52,13 @@
 
 <body>
 
+    <div class="page-loader" id="page-loader" aria-live="polite" aria-label="Loading content">
+        <div class="page-loader__inner">
+            <div class="page-loader__spinner"></div>
+            <p class="page-loader__text">Loading portfolio...</p>
+        </div>
+    </div>
+
     <div id="carouselExample" class="carousel slide">
         <div class="carousel-inner">
             <div class="carousel-item">
@@ -530,13 +537,24 @@
             return { id: snapshot.id, ...snapshot.data() };
         }
 
+        async function fetchTopContent() {
+            const primaryContent = await fetchDocument("topContent", "primary");
+
+            if (primaryContent) {
+                return primaryContent;
+            }
+
+            const fallbackContent = await fetchCollection("topContent");
+            return fallbackContent[0] || null;
+        }
+
         async function loadPortfolioData() {
             try {
                 const [categories, projects, media, topContent] = await Promise.all([
                     fetchCollection("categories"),
                     fetchCollection("projects"),
                     fetchCollection("media"),
-                    fetchDocument("topContent", "primary")
+                    fetchTopContent()
                 ]);
 
                 renderTopContent(topContent);
@@ -611,6 +629,7 @@
                 console.error("Failed to load portfolio data from Firestore.", error);
             } finally {
                 document.documentElement.classList.remove('dynamic-portfolio-pending');
+                document.body.classList.add('page-loaded');
             }
         }
 
