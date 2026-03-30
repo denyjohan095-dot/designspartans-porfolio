@@ -40,8 +40,10 @@
         document.documentElement.classList.add('dynamic-portfolio-pending');
     </script>
     <style>
+        .dynamic-portfolio-pending #myTab,
         .dynamic-portfolio-pending #myTabContent,
-        .dynamic-portfolio-pending #web-design-dropdown {
+        .dynamic-portfolio-pending #portfolio-title,
+        .dynamic-portfolio-pending #portfolio-description {
             visibility: hidden;
         }
     </style>
@@ -90,17 +92,11 @@
                 </div>
 
                 <div class="col-lg-10 offset-lg-1">
-                    <h2 class="title-bg"
+                    <h2 class="title-bg" id="portfolio-title"
                         style="background-image: url('images/title-bg.svg'); margin-top: 60px; padding: 12px; ">Our
                         Recent
                         Projects</h2>
-                    <p class="p">Everyone can talk the talk but hardly anyone follows it through.
-                        That’s where the Design Spartans differ! Just like the Spartans from back in the day, our
-                        digital
-                        warriors never back down from a challenge and only stop when the client admits total
-                        satisfaction.
-                        Have a look at what we can do!
-                    </p>
+                    <p class="p" id="portfolio-description"></p>
                     <br>
                 </div>
             </div>
@@ -108,55 +104,8 @@
     </section>
 
     <section>
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item btn-group" role="presentation">
-                <button type="button" class="nav-link active" id="tab1-tab" data-bs-toggle="tab"
-                    data-bs-target="#tab1-tab-pane" role="tab" aria-controls="tab1-tab-pane" aria-selected="false">
-                    Web Design
-                </button>
-                <button type="button" class=" btn btn-danger dropdown-toggle dropdown-toggle-split"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <!-- <span class="visually-hidden">Toggle Dropdown</span> -->
-                </button>
-                <ul class="dropdown-menu dropdown-menu-lg" id="web-design-dropdown"></ul>
-            </li>
-
-            <li class="nav-item btn-group" role="presentation">
-                <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2-tab-pane"
-                    type="button" role="tab" aria-controls="tab2-tab-pane" aria-selected="false">Logo Design
-                </button>
-            </li>
-
-            <li class="nav-item btn-group" role="presentation">
-                <button class="nav-link" id="tab3-tab" data-bs-toggle="tab" data-bs-target="#tab3-tab-pane"
-                    type="button" role="tab" aria-controls="tab3-tab-pane" aria-selected="false">Business Cards
-                </button>
-            </li>
-            <li class="nav-item btn-group" role="presentation">
-                <button class="nav-link" id="tab4-tab" data-bs-toggle="tab" data-bs-target="#tab4-tab-pane"
-                    type="button" role="tab" aria-controls="tab4-tab-pane" aria-selected="false">Mobile App
-                </button>
-            </li>
-            <li class="nav-item btn-group" role="presentation">
-                <button class="nav-link" id="tab5-tab" onclick="gallerySet()" data-bs-toggle="tab"
-                    data-bs-target="#tab5-tab-pane" type="button" role="tab" aria-controls="tab5-tab-pane"
-                    aria-selected="false">Delivered Products
-                </button>
-            </li>
-
-        </ul>
-
-
-        <div class="tab-content" id="myTabContent">
-            <div class="tab-pane show active" id="tab1-tab-pane" role="tabpanel" aria-labelledby="tab1-tab"
-                tabindex="0"></div>
-            <div class="tab-pane" id="tab2-tab-pane" role="tabpanel" aria-labelledby="tab2-tab" tabindex="0"></div>
-            <div class="tab-pane" id="tab3-tab-pane" role="tabpanel" aria-labelledby="tab3-tab" tabindex="0"></div>
-            <div class="tab-pane" id="tab4-tab-pane" role="tabpanel" aria-labelledby="tab4-tab" tabindex="0"></div>
-            <div class="tab-pane" id="tab5-tab-pane" role="tabpanel" aria-labelledby="tab5-tab" tabindex="0">
-                <ul class="grid effect-1" id="grid"></ul>
-            </div>
-        </div>
+        <ul class="nav nav-tabs" id="myTab" role="tablist"></ul>
+        <div class="tab-content" id="myTabContent"></div>
     </section>
 
     <!-- Modal ==============================-->
@@ -177,6 +126,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import {
             getFirestore,
+            doc,
+            getDoc,
             collection,
             getDocs,
             query,
@@ -194,13 +145,6 @@
 
         const WEB_DESIGN_NAME = "Web Design";
         const DELIVERED_PRODUCTS_NAME = "Delivered Products";
-        const tabCategoryMap = {
-            "tab1-tab-pane": WEB_DESIGN_NAME,
-            "tab2-tab-pane": "Logo Design",
-            "tab3-tab-pane": "Business Cards",
-            "tab4-tab-pane": "Mobile App",
-            "tab5-tab-pane": DELIVERED_PRODUCTS_NAME
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -269,6 +213,14 @@
             return [...items].sort((a, b) => normalizeTimestamp(a.createdAt) - normalizeTimestamp(b.createdAt));
         }
 
+        function getTabButtonId(categoryId) {
+            return `tab-${categoryId}-button`;
+        }
+
+        function getTabPaneId(categoryId) {
+            return `tab-${categoryId}-pane`;
+        }
+
         function createWebCard(project) {
             const imageUrl = sanitizeUrl(project.imageUrl);
             const title = escapeHtml(project.title || project.name || "Untitled Project");
@@ -304,6 +256,26 @@
             return rows.join("");
         }
 
+        function renderTopContent(primaryContent) {
+            const titleElement = document.getElementById("portfolio-title");
+            const descriptionElement = document.getElementById("portfolio-description");
+
+            if (!titleElement || !descriptionElement) {
+                return;
+            }
+
+            if (!primaryContent) {
+                descriptionElement.textContent = "No data found.";
+                return;
+            }
+
+            if (primaryContent.title) {
+                titleElement.textContent = primaryContent.title;
+            }
+
+            descriptionElement.textContent = primaryContent.content || "No data found.";
+        }
+
         function renderNoDataState(tabPaneId, title = "No data found") {
             const tabPane = document.getElementById(tabPaneId);
 
@@ -323,8 +295,8 @@
             `;
         }
 
-        function renderDropdownNoData() {
-            const dropdown = document.getElementById("web-design-dropdown");
+        function renderDropdownNoData(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
 
             if (!dropdown) {
                 return;
@@ -339,15 +311,77 @@
             `;
         }
 
-        function initializeDynamicPlaceholders() {
-            renderDropdownNoData();
-            Object.keys(tabCategoryMap).forEach((tabPaneId) => {
-                renderNoDataState(tabPaneId);
+        function renderTabs(mainCategories) {
+            const tabList = document.getElementById("myTab");
+            const tabContent = document.getElementById("myTabContent");
+
+            if (!tabList || !tabContent) {
+                return;
+            }
+
+            tabList.innerHTML = mainCategories.map((category, index) => {
+                const buttonId = getTabButtonId(category.id);
+                const paneId = getTabPaneId(category.id);
+                const isActive = index === 0;
+                const isWebDesign = category.name === WEB_DESIGN_NAME;
+
+                if (isWebDesign) {
+                    return `
+                        <li class="nav-item btn-group" role="presentation">
+                            <button type="button" class="nav-link dynamic-web-tab ${isActive ? "active" : ""}" id="${buttonId}" data-category-name="${escapeHtml(category.name)}"
+                                data-bs-toggle="tab" data-bs-target="#${paneId}" role="tab" aria-controls="${paneId}" aria-selected="${isActive}">
+                                ${escapeHtml(category.name)}
+                            </button>
+                            <button type="button" class="btn btn-danger dropdown-toggle dropdown-toggle-split"
+                                data-bs-toggle="dropdown" aria-expanded="false"></button>
+                            <ul class="dropdown-menu dropdown-menu-lg" id="dropdown-${category.id}"></ul>
+                        </li>
+                    `;
+                }
+
+                return `
+                    <li class="nav-item btn-group" role="presentation">
+                        <button class="nav-link ${isActive ? "active" : ""}" id="${buttonId}" data-bs-toggle="tab"
+                            data-bs-target="#${paneId}" type="button" role="tab" aria-controls="${paneId}" aria-selected="${isActive}">
+                            ${escapeHtml(category.name)}
+                        </button>
+                    </li>
+                `;
+            }).join("");
+
+            tabContent.innerHTML = mainCategories.map((category, index) => {
+                const paneId = getTabPaneId(category.id);
+                const buttonId = getTabButtonId(category.id);
+                const isActive = index === 0;
+
+                if (category.name === DELIVERED_PRODUCTS_NAME) {
+                    return `
+                        <div class="tab-pane ${isActive ? "show active" : ""}" id="${paneId}" role="tabpanel" aria-labelledby="${buttonId}" tabindex="0">
+                            <ul class="grid effect-1" id="grid-${category.id}"></ul>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tab-pane ${isActive ? "show active" : ""}" id="${paneId}" role="tabpanel" aria-labelledby="${buttonId}" tabindex="0"></div>
+                `;
+            }).join("");
+        }
+
+        function initializeDynamicPlaceholders(mainCategories) {
+            renderTabs(mainCategories);
+            mainCategories.forEach((category) => {
+                const paneId = getTabPaneId(category.id);
+                renderNoDataState(paneId, category.name);
+
+                if (category.name === WEB_DESIGN_NAME) {
+                    renderDropdownNoData(`dropdown-${category.id}`);
+                }
             });
         }
 
-        function renderWebDesignDropdown(subCategories) {
-            const dropdown = document.getElementById("web-design-dropdown");
+        function renderWebDesignDropdown(dropdownId, tabPaneId, subCategories) {
+            const dropdown = document.getElementById(dropdownId);
 
             if (!dropdown) {
                 return;
@@ -359,7 +393,7 @@
 
                 return `
                     <li>
-                        <a class="dropdown-item" href="#${anchorId}" onclick="changeTab('tab1-tab-pane')">${name}</a>
+                        <a class="dropdown-item" href="#${anchorId}" onclick="changeTab('${tabPaneId}')">${name}</a>
                     </li>
                 `;
             });
@@ -379,8 +413,8 @@
             dropdown.innerHTML = rows.join("") || dropdown.innerHTML;
         }
 
-        function renderWebDesignProjects(subCategories, projects) {
-            const tabPane = document.getElementById("tab1-tab-pane");
+        function renderWebDesignProjects(tabPaneId, subCategories, projects) {
+            const tabPane = document.getElementById(tabPaneId);
 
             if (!tabPane) {
                 return;
@@ -444,8 +478,8 @@
             `;
         }
 
-        function renderDeliveredProducts(projects) {
-            const grid = document.getElementById("grid");
+        function renderDeliveredProducts(gridId, projects) {
+            const grid = document.getElementById(gridId);
 
             if (!grid || !projects.length) {
                 return;
@@ -485,63 +519,94 @@
             }
         }
 
-        async function loadPortfolioData() {
-            initializeDynamicPlaceholders();
+        async function fetchDocument(collectionName, documentId) {
+            const documentRef = doc(db, collectionName, documentId);
+            const snapshot = await getDoc(documentRef);
 
+            if (!snapshot.exists()) {
+                return null;
+            }
+
+            return { id: snapshot.id, ...snapshot.data() };
+        }
+
+        async function loadPortfolioData() {
             try {
-                const [categories, projects] = await Promise.all([
+                const [categories, projects, media, topContent] = await Promise.all([
                     fetchCollection("categories"),
-                    fetchCollection("projects")
+                    fetchCollection("projects"),
+                    fetchCollection("media"),
+                    fetchDocument("topContent", "primary")
                 ]);
 
+                renderTopContent(topContent);
+
                 const mainCategories = categories.filter((category) => !category.parentId);
-                const webDesignCategory = mainCategories.find((category) => category.name === WEB_DESIGN_NAME);
-                if (webDesignCategory) {
-                    const webSubCategories = sortByCreatedAt(
-                        categories.filter((category) => category.parentId === webDesignCategory.id)
-                    );
-                    const webProjects = projects.filter((project) => {
+                const orderedMainCategories = sortByCreatedAt(mainCategories);
+
+                if (!orderedMainCategories.length) {
+                    document.getElementById("myTab").innerHTML = "";
+                    document.getElementById("myTabContent").innerHTML = `
+                        <div class="tab-pane show active">
+                            <div class="container text-center py-5">
+                                <h2 class="title-bg" style="background-image: url('images/title-bg.svg');">No data found</h2>
+                                <p class="p mb-0">No categories available right now.</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                initializeDynamicPlaceholders(orderedMainCategories);
+
+                orderedMainCategories.forEach((category) => {
+                    const tabPaneId = getTabPaneId(category.id);
+                    const categoryProjects = projects.filter((project) => {
                         return (
-                            project.mainCategoryId === webDesignCategory.id ||
-                            project.mainCategoryName === WEB_DESIGN_NAME
+                            project.mainCategoryId === category.id ||
+                            project.mainCategoryName === category.name
+                        );
+                    });
+                    const categoryMedia = media.filter((item) => {
+                        return (
+                            item.mainCategoryId === category.id ||
+                            item.mainCategoryName === category.name ||
+                            item.categoryId === category.id ||
+                            item.categoryName === category.name
                         );
                     });
 
-                    if (webSubCategories.length && webProjects.length) {
-                        renderWebDesignDropdown(webSubCategories);
-                        renderWebDesignProjects(webSubCategories, webProjects);
-                    } else {
-                        renderDropdownNoData();
-                        renderNoDataState("tab1-tab-pane");
-                    }
-                } else {
-                    renderDropdownNoData();
-                    renderNoDataState("tab1-tab-pane");
-                }
+                    if (category.name === WEB_DESIGN_NAME) {
+                        const webSubCategories = sortByCreatedAt(
+                            categories.filter((item) => item.parentId === category.id)
+                        );
 
-                Object.entries(tabCategoryMap)
-                    .filter(([tabPaneId]) => tabPaneId !== "tab1-tab-pane")
-                    .forEach(([tabPaneId, categoryName]) => {
-                        const matchingCategory = mainCategories.find((category) => category.name === categoryName);
-                        const categoryProjects = projects.filter((project) => {
-                            return (
-                                project.mainCategoryId === matchingCategory?.id ||
-                                project.mainCategoryName === categoryName
-                            );
-                        });
-
-                        if (tabPaneId === "tab5-tab-pane") {
-                            if (categoryProjects.length) {
-                                renderDeliveredProducts(categoryProjects);
-                            } else {
-                                renderNoDataState(tabPaneId);
-                            }
-
-                            return;
+                        if (webSubCategories.length && categoryProjects.length) {
+                            renderWebDesignDropdown(`dropdown-${category.id}`, tabPaneId, webSubCategories);
+                            renderWebDesignProjects(tabPaneId, webSubCategories, categoryProjects);
+                        } else {
+                            renderDropdownNoData(`dropdown-${category.id}`);
+                            renderNoDataState(tabPaneId, category.name);
                         }
 
-                        renderGenericProjects(tabPaneId, categoryProjects, categoryName);
-                    });
+                        return;
+                    }
+
+                    if (category.name === DELIVERED_PRODUCTS_NAME) {
+                        const deliveredItems = categoryProjects.length ? categoryProjects : categoryMedia;
+
+                        if (deliveredItems.length) {
+                            renderDeliveredProducts(`grid-${category.id}`, deliveredItems);
+                        } else {
+                            renderNoDataState(tabPaneId, category.name);
+                        }
+
+                        return;
+                    }
+
+                    const categoryItems = categoryMedia.length ? categoryMedia : categoryProjects;
+                    renderGenericProjects(tabPaneId, categoryItems, category.name);
+                });
             } catch (error) {
                 console.error("Failed to load portfolio data from Firestore.", error);
             } finally {
@@ -550,7 +615,8 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            initializeDynamicPlaceholders();
+            document.getElementById("myTab").innerHTML = "";
+            document.getElementById("myTabContent").innerHTML = "";
         });
 
         loadPortfolioData();
@@ -566,14 +632,16 @@
     <script src="./gallery-assets/AnimOnScroll.js"></script>
 
     <script>
-        new AnimOnScroll(document.getElementById('grid'), {
-            minDuration: 0.4,
-            maxDuration: 0.7,
-            viewportFactor: 0.2
-        });
+        function getActiveGrid() {
+            return document.querySelector('.tab-pane.active .grid') || document.querySelector('.grid');
+        }
 
-        function gallerySet() {
-            new AnimOnScroll(document.getElementById('grid'), {
+        function gallerySet(gridElement = getActiveGrid()) {
+            if (!gridElement) {
+                return;
+            }
+
+            new AnimOnScroll(gridElement, {
                 minDuration: 0.4,
                 maxDuration: 0.7,
                 viewportFactor: 0.2
@@ -590,7 +658,7 @@
 
             })
 
-            $('#tab1-tab.active').click(function (e) {
+            $(document).on('click', '.dynamic-web-tab.active', function (e) {
 
                 e.stopPropagation();
 
